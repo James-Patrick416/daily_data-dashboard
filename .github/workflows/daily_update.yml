@@ -1,0 +1,24 @@
+name: Daily Data Update
+
+on:
+  schedule:
+    - cron: '0 8 * * *'  # Runs every day at 8 AM UTC
+  workflow_dispatch:      # Lets you run it manually too
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Add today's weather data
+        run: |
+          echo "$(date '+%Y-%m-%d'),$(shuf -i 15-35 -n 1),$(shuf -i 40-80 -n 1),London" >> data/daily_entries.csv
+      
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/daily_entries.csv
+          git commit -m "Daily data update for $(date '+%Y-%m-%d')" || echo "No changes"
+          git push
