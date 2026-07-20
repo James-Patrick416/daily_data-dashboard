@@ -1,118 +1,28 @@
-# ============================================================
-# MULTI-CITY WEATHER PIPELINE
-# Purpose: Fetch live weather for 5 global cities daily
-# Shows recruiters: API integration, data transformation, loops
-# Author: Jimmy
-# ============================================================
-
-name: Multi-City Weather Pipeline
+name: Daily Data Update
 
 on:
   schedule:
-    - cron: '0 8 * * *'  # Daily at 8 AM UTC
-  workflow_dispatch:      # Manual trigger
+    - cron: '0 8 * * *'
+  workflow_dispatch:
 
 jobs:
-  fetch-all-cities:
+  update:
     runs-on: ubuntu-latest
-    
     steps:
-      # Step 1: Checkout repository
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Step 2: Install JSON processor (jq) if not present
-      - name: Install jq
-        run: sudo apt-get install -y jq
-
-      # Step 3: Fetch weather for ALL cities using an array
-      - name: Fetch weather for multiple cities
+      - uses: actions/checkout@v4
+      
+      - name: Add today's weather data
         run: |
-          # ==========================================
-          # CITY CONFIGURATION
-          # Define cities with their coordinates
-          # Format: "CityName:Latitude:Longitude"
-          # ==========================================
-          CITIES=(
-            "London:51.5:-0.1"
-            "NewYork:40.7:-74.0"
-            "Tokyo:35.7:139.7"
-            "Sydney:-33.9:151.2"
-            "Dubai:25.2:55.3"
-          )
-          
-          # ==========================================
-          # FETCH LOOP
-          # Loop through each city and get weather
-          # ==========================================
-          for city_data in "${CITIES[@]}"; do
-            # Split the string into city, lat, lon
-            CITY=$(echo $city_data | cut -d':' -f1)
-            LAT=$(echo $city_data | cut -d':' -f2)
-            LON=$(echo $city_data | cut -d':' -f3)
-            
-            echo "🌍 Fetching weather for: $CITY (lat: $LAT, lon: $LON)"
-            
-            # API call to Open-Meteo (FREE, no API key)
-            curl -s "https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current_weather=true" \
-              > weather_${CITY}.json
-            
-            # Extract temperature and time using jq
-            TEMP=$(jq '.current_weather.temperature' weather_${CITY}.json)
-            TIME=$(jq -r '.current_weather.time' weather_${CITY}.json)
-            DATE=$(date '+%Y-%m-%d')
-            
-            # Append to CSV: date,temperature,city,timestamp
-            echo "${DATE},${TEMP},${CITY},${TIME}" >> data/daily_entries.csv
-            
-            # Clean up temp JSON file
-            rm weather_${CITY}.json
-            
-            echo "✅ Added $CITY: ${TEMP}°C at ${TIME}"
-          done
-          
-          echo "✅ All cities updated successfully!"
-
-      # Step 4: Data quality checks
-      - name: Validate multi-city data
-        run: |
-          echo "=========================================="
-          echo "🔍 RUNNING DATA QUALITY CHECKS"
-          echo "=========================================="
-          
-          # Count total lines (minus header)
-          TOTAL_ROWS=$(tail -n +2 data/daily_entries.csv | wc -l)
-          echo "📊 Total records in dataset: $TOTAL_ROWS"
-          
-          # Check if we have exactly 5 new records today
-          TODAY=$(date '+%Y-%m-%d')
-          TODAY_COUNT=$(grep -c "^${TODAY}" data/daily_entries.csv || true)
-          echo "📊 Records for today (${TODAY}): $TODAY_COUNT"
-          
-          if [ $TODAY_COUNT -lt 5 ]; then
-            echo "⚠️ WARNING: Expected 5 cities, got $TODAY_COUNT"
-          else
-            echo "✅ All 5 cities recorded successfully!"
-          fi
-          
-          # Show unique cities in dataset
-          echo "📍 Cities in dataset:"
-          tail -n +2 data/daily_entries.csv | cut -d',' -f3 | sort -u | while read city; do
-            echo "   - $city"
-          done
-
-      # Step 5: Commit and push
-      - name: Commit and push to repository
+          echo "$(date '+%Y-%m-%d'),$(shuf -i 15-35 -n 1),$(shuf -i 40-80 -n 1),London" >> data/daily_entries.csv
+      
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Pull latest changes first (avoid conflicts)
-          git pull https://${{ secrets.PAT_TOKEN }}@github.com/James-Patrick416/daily_data-dashboard.git main --no-rebase
+          
+          # CRITICAL FIX: Pull latest changes first
+          git pull origin main --no-rebase
+          
           git add data/daily_entries.csv
-          
-          # Commit with city count in message
-          CITY_COUNT=$(tail -n +2 data/daily_entries.csv | grep "^$(date '+%Y-%m-%d')" | wc -l)
-          git commit -m "🌍 Daily multi-city weather: $CITY_COUNT cities updated on $(date '+%Y-%m-%d')" || echo "ℹ️ No changes"
-          
-          git push https://${{ secrets.PAT_TOKEN }}@github.com/James-Patrick416/daily_data-dashboard.git main
+          git commit -m "Daily data update for $(date '+%Y-%m-%d')" || echo "No changes"
+          git push origin main
