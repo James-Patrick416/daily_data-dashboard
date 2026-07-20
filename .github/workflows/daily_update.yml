@@ -113,4 +113,4 @@ jobs:
           CITY_COUNT=$(tail -n +2 data/daily_entries.csv | grep "^$(date '+%Y-%m-%d')" | wc -l)
           git commit -m "🌍 Daily multi-city weather: $CITY_COUNT cities updated on $(date '+%Y-%m-%d')" || echo "ℹ️ No changes"
           
-          git push
+          git push https://${{ secrets.PAT_TOKEN }}@github.com/James-Patrick416/daily_data-dashboard.git
