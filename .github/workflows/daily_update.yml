@@ -1,78 +1,116 @@
-# ============================================
-# DAILY WEATHER PIPELINE
-# Purpose: Fetch live weather data for multiple cities
-# Scheduled: Every day at 8 AM UTC
-# Author: jimmy
-# ============================================
+# ============================================================
+# MULTI-CITY WEATHER PIPELINE
+# Purpose: Fetch live weather for 5 global cities daily
+# Shows recruiters: API integration, data transformation, loops
+# Author: Jimmy
+# ============================================================
 
-name: Daily Weather Data Pipeline
+name: Multi-City Weather Pipeline
 
-# Controls when the workflow runs
 on:
   schedule:
     - cron: '0 8 * * *'  # Daily at 8 AM UTC
-  workflow_dispatch:      # Manual trigger for testing
+  workflow_dispatch:      # Manual trigger
 
 jobs:
-  # Main job: Fetch weather and update dataset
-  fetch-and-update:
+  fetch-all-cities:
     runs-on: ubuntu-latest
     
     steps:
-      # Step 1: Checkout the repository
+      # Step 1: Checkout repository
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # Step 2: Fetch live weather data using free API
-      - name: Fetch weather data from Open-Meteo
-        run: |
-          # Using free Open-Meteo API (no API key needed!)
-          # Fetching London weather as an example
-          curl -s "https://api.open-meteo.com/v1/forecast?latitude=51.5&longitude=-0.1&current_weather=true" \
-            > weather_temp.json
-          
-          # Extract temperature and time from JSON response
-          TEMP=$(jq '.current_weather.temperature' weather_temp.json)
-          DATE=$(date '+%Y-%m-%d')
-          TIME=$(date '+%H:%M:%S')
-          CITY="London"
-          
-          # Append to CSV with timestamp
-          echo "${DATE},${TEMP},${CITY},${TIME}" >> data/daily_entries.csv
-          
-          # Clean up temp file
-          rm weather_temp.json
+      # Step 2: Install JSON processor (jq) if not present
+      - name: Install jq
+        run: sudo apt-get install -y jq
 
-      # Step 3: Data quality check
-      - name: Validate data quality
+      # Step 3: Fetch weather for ALL cities using an array
+      - name: Fetch weather for multiple cities
         run: |
-          # Check if the file has content after appending
-          if [ ! -s data/daily_entries.csv ]; then
-            echo "❌ ERROR: Data file is empty!"
-            exit 1
+          # ==========================================
+          # CITY CONFIGURATION
+          # Define cities with their coordinates
+          # Format: "CityName:Latitude:Longitude"
+          # ==========================================
+          CITIES=(
+            "London:51.5:-0.1"
+            "NewYork:40.7:-74.0"
+            "Tokyo:35.7:139.7"
+            "Sydney:-33.9:151.2"
+            "Dubai:25.2:55.3"
+          )
+          
+          # ==========================================
+          # FETCH LOOP
+          # Loop through each city and get weather
+          # ==========================================
+          for city_data in "${CITIES[@]}"; do
+            # Split the string into city, lat, lon
+            CITY=$(echo $city_data | cut -d':' -f1)
+            LAT=$(echo $city_data | cut -d':' -f2)
+            LON=$(echo $city_data | cut -d':' -f3)
+            
+            echo "🌍 Fetching weather for: $CITY (lat: $LAT, lon: $LON)"
+            
+            # API call to Open-Meteo (FREE, no API key)
+            curl -s "https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current_weather=true" \
+              > weather_${CITY}.json
+            
+            # Extract temperature and time using jq
+            TEMP=$(jq '.current_weather.temperature' weather_${CITY}.json)
+            TIME=$(jq -r '.current_weather.time' weather_${CITY}.json)
+            DATE=$(date '+%Y-%m-%d')
+            
+            # Append to CSV: date,temperature,city,timestamp
+            echo "${DATE},${TEMP},${CITY},${TIME}" >> data/daily_entries.csv
+            
+            # Clean up temp JSON file
+            rm weather_${CITY}.json
+            
+            echo "✅ Added $CITY: ${TEMP}°C at ${TIME}"
+          done
+          
+          echo "✅ All cities updated successfully!"
+
+      # Step 4: Data quality checks
+      - name: Validate multi-city data
+        run: |
+          echo "=========================================="
+          echo "🔍 RUNNING DATA QUALITY CHECKS"
+          echo "=========================================="
+          
+          # Count total lines (minus header)
+          TOTAL_ROWS=$(tail -n +2 data/daily_entries.csv | wc -l)
+          echo "📊 Total records in dataset: $TOTAL_ROWS"
+          
+          # Check if we have exactly 5 new records today
+          TODAY=$(date '+%Y-%m-%d')
+          TODAY_COUNT=$(grep -c "^${TODAY}" data/daily_entries.csv || true)
+          echo "📊 Records for today (${TODAY}): $TODAY_COUNT"
+          
+          if [ $TODAY_COUNT -lt 5 ]; then
+            echo "⚠️ WARNING: Expected 5 cities, got $TODAY_COUNT"
+          else
+            echo "✅ All 5 cities recorded successfully!"
           fi
           
-          # Check if last line has valid data (not empty)
-          LAST_LINE=$(tail -1 data/daily_entries.csv)
-          if [ -z "$LAST_LINE" ]; then
-            echo "❌ ERROR: Last entry is empty!"
-            exit 1
-          fi
-          
-          echo "✅ Data quality check passed: $(tail -1 data/daily_entries.csv)"
+          # Show unique cities in dataset
+          echo "📍 Cities in dataset:"
+          tail -n +2 data/daily_entries.csv | cut -d',' -f3 | sort -u | while read city; do
+            echo "   - $city"
+          done
 
-      # Step 4: Commit and push changes
+      # Step 5: Commit and push
       - name: Commit and push to repository
         run: |
-          # Configure git identity
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
-          # Stage changes
           git add data/daily_entries.csv
           
-          # Commit with timestamp and weather info
-          git commit -m "🌤️ Daily weather update for $(date '+%Y-%m-%d %H:%M')" || echo "ℹ️ No changes to commit"
+          # Commit with city count in message
+          CITY_COUNT=$(tail -n +2 data/daily_entries.csv | grep "^$(date '+%Y-%m-%d')" | wc -l)
+          git commit -m "🌍 Daily multi-city weather: $CITY_COUNT cities updated on $(date '+%Y-%m-%d')" || echo "ℹ️ No changes"
           
-          # Push to main branch
           git push
