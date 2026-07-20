@@ -1,24 +1,78 @@
-name: Daily Data Update
+# ============================================
+# DAILY WEATHER PIPELINE
+# Purpose: Fetch live weather data for multiple cities
+# Scheduled: Every day at 8 AM UTC
+# Author: jimmy
+# ============================================
 
+name: Daily Weather Data Pipeline
+
+# Controls when the workflow runs
 on:
   schedule:
-    - cron: '0 8 * * *'  # Runs every day at 8 AM UTC
-  workflow_dispatch:      # Lets you run it manually too
+    - cron: '0 8 * * *'  # Daily at 8 AM UTC
+  workflow_dispatch:      # Manual trigger for testing
 
 jobs:
-  update:
+  # Main job: Fetch weather and update dataset
+  fetch-and-update:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Add today's weather data
+      # Step 1: Checkout the repository
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Fetch live weather data using free API
+      - name: Fetch weather data from Open-Meteo
         run: |
-          echo "$(date '+%Y-%m-%d'),$(shuf -i 15-35 -n 1),$(shuf -i 40-80 -n 1),London" >> data/daily_entries.csv
-      
-      - name: Commit and push
+          # Using free Open-Meteo API (no API key needed!)
+          # Fetching London weather as an example
+          curl -s "https://api.open-meteo.com/v1/forecast?latitude=51.5&longitude=-0.1&current_weather=true" \
+            > weather_temp.json
+          
+          # Extract temperature and time from JSON response
+          TEMP=$(jq '.current_weather.temperature' weather_temp.json)
+          DATE=$(date '+%Y-%m-%d')
+          TIME=$(date '+%H:%M:%S')
+          CITY="London"
+          
+          # Append to CSV with timestamp
+          echo "${DATE},${TEMP},${CITY},${TIME}" >> data/daily_entries.csv
+          
+          # Clean up temp file
+          rm weather_temp.json
+
+      # Step 3: Data quality check
+      - name: Validate data quality
         run: |
+          # Check if the file has content after appending
+          if [ ! -s data/daily_entries.csv ]; then
+            echo "❌ ERROR: Data file is empty!"
+            exit 1
+          fi
+          
+          # Check if last line has valid data (not empty)
+          LAST_LINE=$(tail -1 data/daily_entries.csv)
+          if [ -z "$LAST_LINE" ]; then
+            echo "❌ ERROR: Last entry is empty!"
+            exit 1
+          fi
+          
+          echo "✅ Data quality check passed: $(tail -1 data/daily_entries.csv)"
+
+      # Step 4: Commit and push changes
+      - name: Commit and push to repository
+        run: |
+          # Configure git identity
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Stage changes
           git add data/daily_entries.csv
-          git commit -m "Daily data update for $(date '+%Y-%m-%d')" || echo "No changes"
+          
+          # Commit with timestamp and weather info
+          git commit -m "🌤️ Daily weather update for $(date '+%Y-%m-%d %H:%M')" || echo "ℹ️ No changes to commit"
+          
+          # Push to main branch
           git push
