@@ -1,4 +1,3 @@
-date,temperature,humidity,city
-2026-07-19,28,65,London
-2026-07-19,27,52,London
-2026-07-20,23,75,London
+date,temperature,city,timestamp
+2026-07-19,28,London,08:00:00
+2026-07-20,26,London,08:00:00
