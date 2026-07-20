@@ -1,32 +1,34 @@
--- =====================================================
--- DAILY AVERAGE TEMPERATURE PER CITY
--- Purpose: Calculate average temperature for each city
--- Use case: Monitoring city-level climate trends
--- Last updated: 2026-07-20
--- =====================================================
+-- ==========================================================
+-- MULTI-CITY WEATHER ANALYSIS
+-- Purpose: Compare temperatures across 5 global cities
+-- Shows recruiters: GROUP BY, filtering, date functions
+-- ==========================================================
 
 SELECT 
-    -- Group by city to get per-location averages
+    -- City-level aggregation
     city,
     
-    -- Calculate average temperature (rounded to 1 decimal)
+    -- Temperature statistics
     ROUND(AVG(temperature), 1) AS avg_temp,
+    ROUND(MAX(temperature), 1) AS max_temp,
+    ROUND(MIN(temperature), 1) AS min_temp,
     
-    -- Count records to validate data completeness
-    COUNT(*) AS record_count,
+    -- Data completeness
+    COUNT(*) AS total_days,
+    COUNT(DISTINCT date) AS unique_days,
     
-    -- Show date range for context
-    MIN(date) AS first_record,
-    MAX(date) AS last_record
+    -- Latest record for freshness check
+    MAX(date) AS last_updated
     
 FROM data.daily_entries
 
--- Exclude any null/incomplete rows
+-- Filter: Only complete data
 WHERE temperature IS NOT NULL
   AND city IS NOT NULL
+  AND date >= DATE('now', '-30 days')  -- Last 30 days only
 
--- Group by city for aggregation
+-- Group by city for comparison
 GROUP BY city
 
--- Show hottest cities first (recruiter-friendly sorting)
+-- Sort by hottest average first
 ORDER BY avg_temp DESC;
