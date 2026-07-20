@@ -106,11 +106,13 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          
+
+          # Pull latest changes first (avoid conflicts)
+          git pull https://${{ secrets.PAT_TOKEN }}@github.com/James-Patrick416/daily_data-dashboard.git main --no-rebase
           git add data/daily_entries.csv
           
           # Commit with city count in message
           CITY_COUNT=$(tail -n +2 data/daily_entries.csv | grep "^$(date '+%Y-%m-%d')" | wc -l)
           git commit -m "🌍 Daily multi-city weather: $CITY_COUNT cities updated on $(date '+%Y-%m-%d')" || echo "ℹ️ No changes"
           
-          git push https://${{ secrets.PAT_TOKEN }}@github.com/James-Patrick416/daily_data-dashboard.git
+          git push https://${{ secrets.PAT_TOKEN }}@github.com/James-Patrick416/daily_data-dashboard.git main
