@@ -1,0 +1,9 @@
+product_id,product_name,category,price,stock_quantity
+101,Laptop Pro,Electronics,1200.00,50
+102,Wireless Mouse,Electronics,25.00,200
+103,Desk Chair,Furniture,350.00,30
+104,Notebook Set,Office,15.00,500
+105,Monitor 27",Electronics,280.00,75
+106,Coffee Mug,Kitchen,12.00,1000
+107,Backpack,Accessories,65.00,120
+108,USB-C Cable,Electronics,18.00,300
