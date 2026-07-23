@@ -1,0 +1,9 @@
+customer_id,customer_name,country,join_date,total_spent
+1,Alice Johnson,USA,2025-01-15,450.50
+2,Robert Chen,Canada,2025-02-20,1200.00
+3,Maria Garcia,UK,2025-03-10,875.25
+4,James Smith,Australia,2025-04-05,320.00
+5,Emily Brown,USA,2025-05-12,2100.75
+6,David Kim,South Korea,2025-06-01,675.00
+7,Sarah Patel,India,2025-06-15,950.00
+8,Michael Okafor,Nigeria,2025-07-01,1500.00
