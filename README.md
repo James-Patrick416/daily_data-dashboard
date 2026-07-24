@@ -1,29 +1,51 @@
-# Daily Data Dashboard 📊
+# Sales Data Warehouse 📊
 
-> Automated data pipeline running daily via GitHub Actions — my contribution graph stays green while I practice real-world data engineering.
+> A complete data warehouse project built entirely in GitHub browser — no local IDE needed. Demonstrates data modeling, advanced SQL, and data quality practices.
 
-## What this repo does
-- **Daily ETL**: Fetches/creates mock weather data every day at 8 AM UTC
-- **SQL Analysis**: Contains queries for aggregating and analyzing trends
-- **Version Control**: Tracks every change — full data lineage visible
+## 🎯 Business Problem Solved
 
-## Skills demonstrated
-- ✅ GitHub Actions (CI/CD scheduling)
-- ✅ Data pipeline automation
-- ✅ SQL query writing
-- ✅ CSV data management
-- ✅ Git workflow & documentation
+This project answers critical business questions:
+- Which countries generate the highest revenue?
+- Who are our top customers by country?
+- How is revenue growing month-over-month?
+- What products are underperforming?
 
-## How to explore
-- Check the [`data/`](./data) folder for daily entries
-- See [`queries/`](./queries) for SQL analysis
-- View the **Actions** tab to see daily runs
+## 📁 Project Structure
+```
 
-## Future plans
-- Add real API data (weather/stock/crypto)
-- Create visual dashboards with markdown charts
-- Build data quality checks
+├── tables/                    # Raw data (CSV)
+│   ├── customers.csv         # Customer dimension
+│   ├── products.csv          # Product dimension
+│   └── orders.csv            # Fact table (15 transactions)
+├── queries/                   # Analytical SQL
+│   ├── revenue_by_country.sql      # JOIN + aggregation
+│   ├── top_customers_by_country.sql # Window functions
+│   ├── monthly_growth.sql          # LAG + growth calc
+│   └── data_quality_checks.sql     # Data validation
+└── README.md                 # This portfolio
 
----
+```
+## 🛠️ Skills Demonstrated
 
-*Built entirely in browser — no local IDE needed.*
+- **Data Modeling**: Star schema with fact + dimension tables
+- **Advanced SQL**: JOINs, window functions, CTEs, LAG
+- **Data Quality**: Null, duplicate, orphan, and consistency checks
+- **Business Intelligence**: Revenue analytics, customer insights
+- **Version Control**: Full Git workflow in browser
+
+## 📊 Key Insights (Sample Output)
+
+| Country | Revenue | Top Customer |
+|---------|---------|--------------|
+| USA | $2,813 | Emily Brown |
+| UK | $910 | Maria Garcia |
+| India | $150 | Sarah Patel |
+| Canada | $50 | Robert Chen |
+
+## 🚀 How to Run
+
+1. Copy any query from `queries/` folder
+2. Paste into [SQLite Online](https://sqliteonline.com/)
+3. Upload the 3 CSV files from `tables/`
+4. Execute and see results!
+   
